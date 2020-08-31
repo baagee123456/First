@@ -1,28 +1,32 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 2020-05-27
 % q_from_M_v7_VolumePile
+% This script imports the Force and Disp text output of Plaxis 3D analysis for pile group,
+% and generates data for p-y curves and p-multipliers.
+% This script might need other MATLAB functions uploaded in my repository.
+% Please contact yj.choi@utexas.edu for more information
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 clc
 clear all
 close all
 
-% Soil parameter (py °î¼±¿ë)
+% Soil parameter (py ê³¡ì„ ìš©)
 Water =1;
-gamma = 18-10; % À¯È¿ ´ÜÀ§Áß·®
+gamma = 18-10; % ìœ íš¨ ë‹¨ìœ„ì¤‘ëŸ‰
 phi = 29;
-pydepth = -1; % py curve ¾òÀ» ±íÀÌ
+pydepth = -1; % py curve ì–»ì„ ê¹Šì´
 
 % Pile parameter 
-PileLength = 10; % ¾Æ·¡ for¹® ¾È¿¡µµ Pile_LÀÌ¶ó´Â º¯¼ö°¡ ÀÖÀ½.
+PileLength = 10; % ì•„ë˜ forë¬¸ ì•ˆì—ë„ Pile_Lì´ë¼ëŠ” ë³€ìˆ˜ê°€ ìˆìŒ.
 D = 0.5; % Pile diameter
-Ansys = 10; % ÇØ¼® Æ÷ÀÎÆ® °³¼ö
-PileNum = 9; % ¹«¸®¸»¶Ò °³¼ö
+Ansys = 10; % í•´ì„ í¬ì¸íŠ¸ ê°œìˆ˜
+PileNum = 9; % ë¬´ë¦¬ë§ëš ê°œìˆ˜
 
-tol1 = 0.00001; % py curve ¾òÀ» ±íÀÌÀÇ z index Ã£¶§ÀÇ tolerance
-RigidityFactor = 10^6; % Volume Pile Áß°£¿¡ »ğÀÔµÈ Beam¿ä¼ÒÀÇ °¨¼ÒµÈ °­¼ºÀ» °í·Á
+tol1 = 0.00001; % py curve ì–»ì„ ê¹Šì´ì˜ z index ì°¾ë•Œì˜ tolerance
+RigidityFactor = 10^6; % Volume Pile ì¤‘ê°„ì— ì‚½ì…ëœ Beamìš”ì†Œì˜ ê°ì†Œëœ ê°•ì„±ì„ ê³ ë ¤
 
-% Plaxis data ºÒ·¯¿À±â
+% Plaxis data ë¶ˆëŸ¬ì˜¤ê¸°
 FileName_force = ...
     ["3.1.2.1.1 Calculation results_ Beam_ Phase_1 [Phase_1] (1_34)_ Table of forces"...
     ,"3.1.2.1.2 Calculation results_ Beam_ Phase_2 [Phase_2] (2_58)_ Table of forces"...
@@ -46,8 +50,8 @@ FileName_disp = ...
     ,"3.1.1.1.1.9 Calculation results_ Beam_ Phase_9 [Phase_9] (9_250)_ Table of total displacements"...
     ,"3.1.1.1.1.10 Calculation results_ Beam_ Phase_10 [Phase_10] (10_288)_ Table of total displacements"];
 
-% zcol = [2, 169]; % ¹«¸®¸»¶Ò Áß ÇØ´ç ¸»¶ÒÀÇ column ÁÂÇ¥ (¸Å´º¾ó Á¦¾î)
-% º¯¼ö °ø°£ »ı¼º(¼Óµµ ºü¸£°Ô ÇÏ±â À§ÇÔ)
+% zcol = [2, 169]; % ë¬´ë¦¬ë§ëš ì¤‘ í•´ë‹¹ ë§ëšì˜ column ì¢Œí‘œ (ë§¤ë‰´ì–¼ ì œì–´)
+% ë³€ìˆ˜ ê³µê°„ ìƒì„±(ì†ë„ ë¹ ë¥´ê²Œ í•˜ê¸° ìœ„í•¨)
 F_input_diff = zeros(Ansys, PileNum);
 F_input_fit = zeros(Ansys, PileNum);
 F_input_intp = zeros(Ansys, PileNum);
@@ -56,19 +60,19 @@ zf_out = zeros(Ansys+1, PileNum);
 qint_out = zeros(Ansys+1, PileNum);
 zint_out = zeros(Ansys+1, PileNum);
 
-SampleData = importfile_force(FileName_force(1)); % ÇØ´ç ¸»¶ÒÀÇ columnÁÂÇ¥ Ã£±âÀ§ÇØ ÇØ¼®µ¥ÀÌÅÍ Áß ÇÏ³ª¸¦ »ùÇÃ·Î ºÒ·¯¿È
-zz = SampleData(2:end,6); % z ÁÂÇ¥¸¦ ºÒ·¯¿È
-zz = table2array(zz); % ºÒ·¯¿Â °ªÀ» double ÇüÀ¸·Î ¹Ù²Ş
-[zzsize_m, zzsize_n] = size(zz); % zzÀÇ »çÀÌÁî ¹İÈ¯
-DataSize = zzsize_m/PileNum; % ÇÏ³ªÀÇ pile µ¥ÀÌÅÍ¿¡ ´ëÇÑ data column »çÀÌÁî ¹İÈ¯
+SampleData = importfile_force(FileName_force(1)); % í•´ë‹¹ ë§ëšì˜ columnì¢Œí‘œ ì°¾ê¸°ìœ„í•´ í•´ì„ë°ì´í„° ì¤‘ í•˜ë‚˜ë¥¼ ìƒ˜í”Œë¡œ ë¶ˆëŸ¬ì˜´
+zz = SampleData(2:end,6); % z ì¢Œí‘œë¥¼ ë¶ˆëŸ¬ì˜´
+zz = table2array(zz); % ë¶ˆëŸ¬ì˜¨ ê°’ì„ double í˜•ìœ¼ë¡œ ë°”ê¿ˆ
+[zzsize_m, zzsize_n] = size(zz); % zzì˜ ì‚¬ì´ì¦ˆ ë°˜í™˜
+DataSize = zzsize_m/PileNum; % í•˜ë‚˜ì˜ pile ë°ì´í„°ì— ëŒ€í•œ data column ì‚¬ì´ì¦ˆ ë°˜í™˜
 
-% [embedded beam Àü¿ë] ---------------------------------------------------
-%  ¹«¸®¸»¶Ò Áß ÇØ´ç ¸»¶ÒÀÇ column ÁÂÇ¥ Ã£±â (³ªÁß¿¡ ÀÌ°Å È°¿ëÇØ¼­ Ãß°¡ ÄÚµù ÇÊ¿ä)
-% SampleData = importfile_force(FileName_force(1)); % ÇØ´ç ¸»¶ÒÀÇ columnÁÂÇ¥ Ã£±âÀ§ÇØ ÇØ¼®µ¥ÀÌÅÍ Áß ÇÏ³ª¸¦ »ùÇÃ·Î ºÒ·¯¿È
-% zz = SampleData(1:end,6); % z ÁÂÇ¥¸¦ ºÒ·¯¿È
-% zz = table2array(zz); % ºÒ·¯¿Â °ªÀ» double ÇüÀ¸·Î ¹Ù²Ş
-% zcol(:,1)=find(zz<=0.00000001 & zz>-0.00000001, PileNum); % z ÁÂÇ¥°¡ 0ÀÎ °÷ÀÇ column index¸¦ ºÒ·¯¿È
-% zcol(:,2)=find(zz==-PileLength, PileNum); % z ÁÂÇ¥°¡ 10ÀÎ °÷ÀÇ column index¸¦ ºÒ·¯¿È
+% [embedded beam ì „ìš©] ---------------------------------------------------
+%  ë¬´ë¦¬ë§ëš ì¤‘ í•´ë‹¹ ë§ëšì˜ column ì¢Œí‘œ ì°¾ê¸° (ë‚˜ì¤‘ì— ì´ê±° í™œìš©í•´ì„œ ì¶”ê°€ ì½”ë”© í•„ìš”)
+% SampleData = importfile_force(FileName_force(1)); % í•´ë‹¹ ë§ëšì˜ columnì¢Œí‘œ ì°¾ê¸°ìœ„í•´ í•´ì„ë°ì´í„° ì¤‘ í•˜ë‚˜ë¥¼ ìƒ˜í”Œë¡œ ë¶ˆëŸ¬ì˜´
+% zz = SampleData(1:end,6); % z ì¢Œí‘œë¥¼ ë¶ˆëŸ¬ì˜´
+% zz = table2array(zz); % ë¶ˆëŸ¬ì˜¨ ê°’ì„ double í˜•ìœ¼ë¡œ ë°”ê¿ˆ
+% zcol(:,1)=find(zz<=0.00000001 & zz>-0.00000001, PileNum); % z ì¢Œí‘œê°€ 0ì¸ ê³³ì˜ column indexë¥¼ ë¶ˆëŸ¬ì˜´
+% zcol(:,2)=find(zz==-PileLength, PileNum); % z ì¢Œí‘œê°€ 10ì¸ ê³³ì˜ column indexë¥¼ ë¶ˆëŸ¬ì˜´
 % [zcol_size_m, zcol_size_n]=size(zcol);
 % DataColSize = zcol(:,2) - zcol(:,1) + 1;
 % zarray = zeros(max(DataColSize), zcol_size_m);
@@ -83,7 +87,7 @@ for LL = 1: PileNum
     zcol(LL,2) = DataSize+1+(LL-1)*DataSize;
 end
 
-% º¯¼ö °ø°£ »ı¼º(¼Óµµ ºü¸£°Ô ÇÏ±â À§ÇÔ)
+% ë³€ìˆ˜ ê³µê°„ ìƒì„±(ì†ë„ ë¹ ë¥´ê²Œ í•˜ê¸° ìœ„í•¨)
 zarray = zeros(DataSize, PileNum);
 Qarray = zeros(DataSize, PileNum);
 Marray = zeros(DataSize, PileNum);
@@ -91,29 +95,29 @@ Dispxarray = zeros(DataSize, PileNum);
 
 for i = 1:Ansys
     
-    % µ¥ÀÌÅÍ ºÒ·¯¿À±â
+    % ë°ì´í„° ë¶ˆëŸ¬ì˜¤ê¸°
     Data_Force = importfile_force(FileName_force(i));
     Data_Disp = importfile_disp(FileName_disp(i));
         
     for j = 1:PileNum
         
-        Data_Force_PileNum = Data_Force(zcol(j,1):zcol(j,2),1:end); % ¹«¸®¸»¶Ò Áß j¹øÂ° ¸»¶Ò¿¡ ´ëÇÑ Force µ¥ÀÌÅÍ
-        Data_Force_PileNum = sortrows(Data_Force_PileNum, 6, 'descend'); % µ¥ÀÌÅÍ¸¦ ±íÀÌ¼øÀ¸·Î Á¤·Ä
-        z = Data_Force_PileNum(:,6); % Data_Force_PileNum¿¡¼­ z°ª¸¸ ºÒ·¯¿È
-        zarray(1:size(table2array(z)),j) = table2array(z); % ¹«¸®¸»¶Ò j¿¡ ´ëÇØ j¿­¿¡ z°ª ÀúÀå
-        Pile_L(:,j) = min(zarray(:,j)); % PileÀÇ ±æÀÌ ¹İÈ¯ (¹«¸®¸»¶Ò j¿¡¼­ °¡Àå ±íÀº z°ª)
-        Q = Data_Force_PileNum(:,10); % Data_Force_PileNum¿¡¼­ Q°ª¸¸ ºÒ·¯¿È
-        Qarray(1:size(table2array(Q)),j) = table2array(Q)*RigidityFactor; % ¹«¸®¸»¶Ò j¿¡ ´ëÇØ j¿­¿¡ Q°ª ÀúÀå
-        M = Data_Force_PileNum(:,19); % Data_Force_PileNum¿¡¼­ M°ª¸¸ ºÒ·¯¿È
-        Marray(1:size(table2array(M)),j) = table2array(M)*RigidityFactor; % ¹«¸®¸»¶Ò j¿¡ ´ëÇØ j¿­¿¡ M°ª ÀúÀå
+        Data_Force_PileNum = Data_Force(zcol(j,1):zcol(j,2),1:end); % ë¬´ë¦¬ë§ëš ì¤‘ jë²ˆì§¸ ë§ëšì— ëŒ€í•œ Force ë°ì´í„°
+        Data_Force_PileNum = sortrows(Data_Force_PileNum, 6, 'descend'); % ë°ì´í„°ë¥¼ ê¹Šì´ìˆœìœ¼ë¡œ ì •ë ¬
+        z = Data_Force_PileNum(:,6); % Data_Force_PileNumì—ì„œ zê°’ë§Œ ë¶ˆëŸ¬ì˜´
+        zarray(1:size(table2array(z)),j) = table2array(z); % ë¬´ë¦¬ë§ëš jì— ëŒ€í•´ jì—´ì— zê°’ ì €ì¥
+        Pile_L(:,j) = min(zarray(:,j)); % Pileì˜ ê¸¸ì´ ë°˜í™˜ (ë¬´ë¦¬ë§ëš jì—ì„œ ê°€ì¥ ê¹Šì€ zê°’)
+        Q = Data_Force_PileNum(:,10); % Data_Force_PileNumì—ì„œ Qê°’ë§Œ ë¶ˆëŸ¬ì˜´
+        Qarray(1:size(table2array(Q)),j) = table2array(Q)*RigidityFactor; % ë¬´ë¦¬ë§ëš jì— ëŒ€í•´ jì—´ì— Qê°’ ì €ì¥
+        M = Data_Force_PileNum(:,19); % Data_Force_PileNumì—ì„œ Mê°’ë§Œ ë¶ˆëŸ¬ì˜´
+        Marray(1:size(table2array(M)),j) = table2array(M)*RigidityFactor; % ë¬´ë¦¬ë§ëš jì— ëŒ€í•´ jì—´ì— Mê°’ ì €ì¥
         
-        Data_Disp_PileNum = Data_Disp(zcol(j,1):zcol(j,2),1:end); % ¹«¸®¸»¶Ò Áß j¹øÂ° ¸»¶Ò¿¡ ´ëÇÑ Disp µ¥ÀÌÅÍ
-        Data_Disp_PileNum = sortrows(Data_Disp_PileNum, 6, 'descend'); % µ¥ÀÌÅÍ¸¦ ±íÀÌ¼øÀ¸·Î Á¤·Ä
-        Dispx =  Data_Disp_PileNum(:, 7); % Data_Disp_PileNum¿¡¼­ Dispx°ª¸¸ ºÒ·¯¿È
-        Dispxarray(1:size(table2array(Dispx)),j) = table2array(Dispx); % ¹«¸®¸»¶Ò j¿¡ ´ëÇØ j¿­¿¡ dispx°ª ÀúÀå
+        Data_Disp_PileNum = Data_Disp(zcol(j,1):zcol(j,2),1:end); % ë¬´ë¦¬ë§ëš ì¤‘ jë²ˆì§¸ ë§ëšì— ëŒ€í•œ Disp ë°ì´í„°
+        Data_Disp_PileNum = sortrows(Data_Disp_PileNum, 6, 'descend'); % ë°ì´í„°ë¥¼ ê¹Šì´ìˆœìœ¼ë¡œ ì •ë ¬
+        Dispx =  Data_Disp_PileNum(:, 7); % Data_Disp_PileNumì—ì„œ Dispxê°’ë§Œ ë¶ˆëŸ¬ì˜´
+        Dispxarray(1:size(table2array(Dispx)),j) = table2array(Dispx); % ë¬´ë¦¬ë§ëš jì— ëŒ€í•´ jì—´ì— dispxê°’ ì €ì¥
         
         
-        %%% ¹æ¹ı1. ´ÙÇ×½ÄÀ¸·Î M¸¦ ÇÇÆÃÇÏÁö ¾Ê°í ¼öÄ¡¹ÌºĞ(Â÷ºĞ)ÇÏ¿© Q¿Í q±¸ÇÔ
+        %%% ë°©ë²•1. ë‹¤í•­ì‹ìœ¼ë¡œ Më¥¼ í”¼íŒ…í•˜ì§€ ì•Šê³  ìˆ˜ì¹˜ë¯¸ë¶„(ì°¨ë¶„)í•˜ì—¬ Qì™€ qêµ¬í•¨
         dz = diff(zarray(:,j)); % m
         dM = diff(Marray(:,j)); % kN-m
         Q_diff = dM./dz; % kN
@@ -121,41 +125,41 @@ for i = 1:Ansys
         q_diff = dQ_diff./dz(2:end); % kn/m
         
         
-        %%% ¹æ¹ı2. ´ÙÇ×½ÄÀ¸·Î M¼±µµ¸¦ ÇÇÆÃÇÏ°í ÀÌ¸¦ ¹ÌºĞÇÏ¿© Q¿Í q±¸ÇÔ
-        polyfit_M = polyfitB(zarray(:,j),Marray(:,j), 6, 0); % z¿¡ µû¸¥ M¸¦ ´ÙÇ×½Ä ÇÇÆÃ
-        % polyfitB´Â Æ¯Á¤ yÀıÆíÀ» °¡Áö´Â fittingÀº »ç¿ëÀÚ ÇÔ¼ö
-        % polyfitB(x, y, Â÷¼ö, yÀıÆí)
-        % https://kr.mathworks.com/matlabcentral/fileexchange/35401-polyfitzero Âü°í
-        % µÎÁ¡À» Áö³ª´Â polyfitÀº
+        %%% ë°©ë²•2. ë‹¤í•­ì‹ìœ¼ë¡œ Mì„ ë„ë¥¼ í”¼íŒ…í•˜ê³  ì´ë¥¼ ë¯¸ë¶„í•˜ì—¬ Qì™€ qêµ¬í•¨
+        polyfit_M = polyfitB(zarray(:,j),Marray(:,j), 6, 0); % zì— ë”°ë¥¸ Më¥¼ ë‹¤í•­ì‹ í”¼íŒ…
+        % polyfitBëŠ” íŠ¹ì • yì ˆí¸ì„ ê°€ì§€ëŠ” fittingì€ ì‚¬ìš©ì í•¨ìˆ˜
+        % polyfitB(x, y, ì°¨ìˆ˜, yì ˆí¸)
+        % https://kr.mathworks.com/matlabcentral/fileexchange/35401-polyfitzero ì°¸ê³ 
+        % ë‘ì ì„ ì§€ë‚˜ëŠ” polyfitì€
         % https://kr.mathworks.com/matlabcentral/fileexchange/54207-polyfix-x-y-n-xfix-yfix-xder-dydx
         
-        % ÇÇÆÃµÈ Q ´ÙÇ×½Ä plotÀ» À§ÇÑ º¯¼ö»ı¼º
+        % í”¼íŒ…ëœ Q ë‹¤í•­ì‹ plotì„ ìœ„í•œ ë³€ìˆ˜ìƒì„±
         delta = 0.01;
         zf = 0:-delta:Pile_L;
         Mf = polyval(polyfit_M, zf);
         
-        % Q ´ÙÇ×½ÄÀ» ¹ÌºĞÇÏ¿© Q (sheer force, kN), q (soil resistance, kN/m) ±¸ÇÔ
+        % Q ë‹¤í•­ì‹ì„ ë¯¸ë¶„í•˜ì—¬ Q (sheer force, kN), q (soil resistance, kN/m) êµ¬í•¨
         polyfit_Q = polyder(polyfit_M);
         polyfit_q = polyder(polyfit_Q);
         Qf = polyval(polyfit_Q, zf);
         qf = polyval(polyfit_q, zf);
         
         
-        %%% ¹æ¹ı3. M data¸¦ interplotationÇÏ°í, ÀÌ¸¦ ¼öÄ¡¹ÌºĞÇÏ¿© Q¿Í q±¸ÇÔ
-        SampRate = 1; % PileLength¿¡¼­ÀÇ index Ã£À» ¶§ sampling rate (m)
-        factor1 = 1 / SampRate; % PileLength¿¡¼­ samplingµÈ µ¥ÀÌÅÍ¸¦ °¢ Çà(Á¤¼ö)·Î ÀúÀåÇÏ±â À§ÇÑ ÀÛ¾÷
-        tol2 = 0.0001; % PileLength¿¡¼­ÀÇ index¸¦ Ã£À» ¶§ ¿ÀÂ÷ tolerance
-        zarray_intp = zeros(PileLength * factor1 + 1, 1); % Ã¹Â° z°ª 0À¸·Î ÇÔ.
-        Marray_intp = zeros(PileLength * factor1 + 1, 1); % Ã¹Â° M°ª 0À¸·Î ÇÔ.
+        %%% ë°©ë²•3. M dataë¥¼ interplotationí•˜ê³ , ì´ë¥¼ ìˆ˜ì¹˜ë¯¸ë¶„í•˜ì—¬ Qì™€ qêµ¬í•¨
+        SampRate = 1; % PileLengthì—ì„œì˜ index ì°¾ì„ ë•Œ sampling rate (m)
+        factor1 = 1 / SampRate; % PileLengthì—ì„œ samplingëœ ë°ì´í„°ë¥¼ ê° í–‰(ì •ìˆ˜)ë¡œ ì €ì¥í•˜ê¸° ìœ„í•œ ì‘ì—…
+        tol2 = 0.0001; % PileLengthì—ì„œì˜ indexë¥¼ ì°¾ì„ ë•Œ ì˜¤ì°¨ tolerance
+        zarray_intp = zeros(PileLength * factor1 + 1, 1); % ì²«ì§¸ zê°’ 0ìœ¼ë¡œ í•¨.
+        Marray_intp = zeros(PileLength * factor1 + 1, 1); % ì²«ì§¸ Mê°’ 0ìœ¼ë¡œ í•¨.
         for nn = SampRate:SampRate:PileLength
-            zcol2(nn*factor1,:)=find(zarray(:,j) >= -nn-tol2 & zarray(:,j) <= -nn+tol2, 1); % z = nn (m) PileLength¿¡¼­ÀÇ index¸¦ Ã£À½
-            zarray_intp(1+nn*factor1,:) = zarray(zcol2(nn*factor1),j); % 0 ÀÌÈÄ z
-            Marray_intp(1+nn*factor1,:) =Marray(zcol2(nn*factor1),j); % 0 ÀÌÈÄÀÇ M
+            zcol2(nn*factor1,:)=find(zarray(:,j) >= -nn-tol2 & zarray(:,j) <= -nn+tol2, 1); % z = nn (m) PileLengthì—ì„œì˜ indexë¥¼ ì°¾ìŒ
+            zarray_intp(1+nn*factor1,:) = zarray(zcol2(nn*factor1),j); % 0 ì´í›„ z
+            Marray_intp(1+nn*factor1,:) =Marray(zcol2(nn*factor1),j); % 0 ì´í›„ì˜ M
         end
-        % ¾Õ¼­ nn (m)¿¡¼­ samplingÇÑ zarray_intp, Marray_intp¸¦ zintp ÁöÁ¡¿¡¼­ º¸°£
-        zintp = [-PileLength:0.0001:0]; % interplotationÇÒ zÁÂÇ¥
-        Mintp = interp1(zarray_intp, Marray_intp, zintp, 'spline'); % zintp¿¡¼­ interplotation ½Ç½Ã
-        % MÀ» ¼öÄ¡¹ÌºĞ
+        % ì•ì„œ nn (m)ì—ì„œ samplingí•œ zarray_intp, Marray_intpë¥¼ zintp ì§€ì ì—ì„œ ë³´ê°„
+        zintp = [-PileLength:0.0001:0]; % interplotationí•  zì¢Œí‘œ
+        Mintp = interp1(zarray_intp, Marray_intp, zintp, 'spline'); % zintpì—ì„œ interplotation ì‹¤ì‹œ
+        % Mì„ ìˆ˜ì¹˜ë¯¸ë¶„
         dz_intp = diff(zintp); % m
         dM_intp = diff(Mintp); % kN-m
         Q_diff_intp = dM_intp./dz_intp; % kN
@@ -164,13 +168,13 @@ for i = 1:Ansys
         
         
 %         % plot
-%         figure(j) % figure 1-j´Â °¢ ¹«¸®¸»¶ÒÀÇ À§Ä¡
+%         figure(j) % figure 1-jëŠ” ê° ë¬´ë¦¬ë§ëšì˜ ìœ„ì¹˜
 %         % M plot
-%         subplot(3,Ansys,i);  % 1-3ÇàÀº °¢°¢ Bending Moment, Shear forece, soil resistance; 1-i¿­Àº ÇÏÁß ´Ü°è
+%         subplot(3,Ansys,i);  % 1-3í–‰ì€ ê°ê° Bending Moment, Shear forece, soil resistance; 1-iì—´ì€ í•˜ì¤‘ ë‹¨ê³„
 %         plot(zarray(:,j), Marray(:,j), 'o', zf, Mf, zintp, Mintp, 'k');
 %         xlabel('z (m)')
 %         ylabel('Moment (kN-m)')
-%         legend('Plaxis', '´ÙÇ×½Ä fitting','Spline')
+%         legend('Plaxis', 'ë‹¤í•­ì‹ fitting','Spline')
 %         grid on
 %         % Q plot
 %         subplot(3,Ansys,i+Ansys)
@@ -180,7 +184,7 @@ for i = 1:Ansys
 %         grid on
 %         % q plot
 %         subplot(3,Ansys,i+Ansys*2)
-%         plot(zarray(3:end,j), q_diff, 'o', zf, qf, zintp(3:end), q_diff_intp,'k');  % ¼öÄ¡¹ÌºĞ°ª°ú pitÇÔ¼ö ¹ÌºĞ°ª
+%         plot(zarray(3:end,j), q_diff, 'o', zf, qf, zintp(3:end), q_diff_intp,'k');  % ìˆ˜ì¹˜ë¯¸ë¶„ê°’ê³¼ pití•¨ìˆ˜ ë¯¸ë¶„ê°’
 %         xlabel('z (m)')
 %         ylabel('Soil resistance (kN/m)')
 %         ylim([-200*i 200*i])
@@ -188,35 +192,35 @@ for i = 1:Ansys
 %         f=figure(j);
 %         f.Position = [30 80  1800 800];
         
-        % % figure ÀúÀå
+        % % figure ì €ì¥
         % pydepth_str = num2str(pydepth);
         % pydepth_str = strcat('_at_', pydepth_str, 'm');
         % PilePosition = ["Force_(D,D)","Force_(0,D)","Force_(-D,D)","Force_(D,0)","Force_(0,0)","Force_(-D,0)","Force_(D,-D)","Force_(0,-D)","Force_(-D,-D)"];
         % Figure_i_name = strcat(PilePosition, pydepth_str);
         % saveas(gcf, Figure_i_name(j), 'png')
                 
-        % ¼öÄ¡ ¹ÌÀûºĞ°ªÀÌ ÀûÀıÇÑÁö È®ÀÎ
-        F_input_diff(i,j)=Qarray(1,j)-Qarray(end,j); % ÆÄÀÏ head¿¡ °¡ÇØÁø ÇÏÁßÀ» ¿ª°è»êÇÏ¿© È®ÀÎ (Plaxis °á°ú)
-        F_input_fit(i,j)=Qf(1)-Qf(end); % ÆÄÀÏ head¿¡ °¡ÇØÁø ÇÏÁßÀ» ¿ª°è»êÇÏ¿© È®ÀÎ (´ÙÇ×½Ä ÇÇÆÃ ¹æ¹ı)
-        F_input_intp(i,j)=Q_diff_intp(1)-Q_diff_intp(end); % ÆÄÀÏ head¿¡ °¡ÇØÁø ÇÏÁßÀ» ¿ª°è»êÇÏ¿© È®ÀÎ (´ÙÇ×½Ä ÇÇÆÃ ¹æ¹ı)
+        % ìˆ˜ì¹˜ ë¯¸ì ë¶„ê°’ì´ ì ì ˆí•œì§€ í™•ì¸
+        F_input_diff(i,j)=Qarray(1,j)-Qarray(end,j); % íŒŒì¼ headì— ê°€í•´ì§„ í•˜ì¤‘ì„ ì—­ê³„ì‚°í•˜ì—¬ í™•ì¸ (Plaxis ê²°ê³¼)
+        F_input_fit(i,j)=Qf(1)-Qf(end); % íŒŒì¼ headì— ê°€í•´ì§„ í•˜ì¤‘ì„ ì—­ê³„ì‚°í•˜ì—¬ í™•ì¸ (ë‹¤í•­ì‹ í”¼íŒ… ë°©ë²•)
+        F_input_intp(i,j)=Q_diff_intp(1)-Q_diff_intp(end); % íŒŒì¼ headì— ê°€í•´ì§„ í•˜ì¤‘ì„ ì—­ê³„ì‚°í•˜ì—¬ í™•ì¸ (ë‹¤í•­ì‹ í”¼íŒ… ë°©ë²•)
         
-        qf_out(1,j)=0; % (0,0)ÀÎ Á¡À» ÇÃ·ÔÇÏ±â À§ÇØ ¿øÁ¡ÁÂÇ¥ »ı¼º
-        zf_out(1,j)=0; % (0,0)ÀÎ Á¡À» ÇÃ·ÔÇÏ±â À§ÇØ ¿øÁ¡ÁÂÇ¥ »ı¼º
-        qf_out(i+1,j) = abs(polyval(polyfit_q,pydepth)); % pydepth °ª¿¡¼­ÀÇ soil resistance¸¦ ±¸ÇÔ
-        zindex = find(zarray(:,j)>pydepth-tol1 & zarray(:,j)<pydepth+tol1, 1); % pydepth°ª¿¡ °¡Àå °¡±î¿î zindex¸¦ Ã£À½
-        zf_out(i+1,j) = Dispxarray(min(zindex),j); % Ã£Àº index¿¡ ÇØ´çÇÏ´Â pile disp °ªÀ» ¹İÈ¯
+        qf_out(1,j)=0; % (0,0)ì¸ ì ì„ í”Œë¡¯í•˜ê¸° ìœ„í•´ ì›ì ì¢Œí‘œ ìƒì„±
+        zf_out(1,j)=0; % (0,0)ì¸ ì ì„ í”Œë¡¯í•˜ê¸° ìœ„í•´ ì›ì ì¢Œí‘œ ìƒì„±
+        qf_out(i+1,j) = abs(polyval(polyfit_q,pydepth)); % pydepth ê°’ì—ì„œì˜ soil resistanceë¥¼ êµ¬í•¨
+        zindex = find(zarray(:,j)>pydepth-tol1 & zarray(:,j)<pydepth+tol1, 1); % pydepthê°’ì— ê°€ì¥ ê°€ê¹Œìš´ zindexë¥¼ ì°¾ìŒ
+        zf_out(i+1,j) = Dispxarray(min(zindex),j); % ì°¾ì€ indexì— í•´ë‹¹í•˜ëŠ” pile disp ê°’ì„ ë°˜í™˜
         
-        qint_out(1,j)=0; % (0,0)ÀÎ Á¡À» ÇÃ·ÔÇÏ±â À§ÇØ ¿øÁ¡ÁÂÇ¥ »ı¼º
-        zint_out(1,j)=0; % (0,0)ÀÎ Á¡À» ÇÃ·ÔÇÏ±â À§ÇØ ¿øÁ¡ÁÂÇ¥ »ı¼º
-        z3 = zintp(3:end); % q_diff_intp ¹è¿­¿¡ ´ëÀÀÇÏ´Â z°ª
-        pydepth_index1 = find(z3==pydepth,1); % z3 °ª Áß pydepth¿¡ ÇØ´çÇÏ´Â index ±¸ÇÔ
-        qint_out(i+1,j) = abs(q_diff_intp(pydepth_index1)); % pydepth °ª¿¡¼­ÀÇ soil resistance¸¦ ±¸ÇÔ
-        pydepth_index2 = find(zarray(:,j)>pydepth-tol1 & zarray(:,j)<pydepth+tol1, 1); % pydepth°ª¿¡ °¡Àå °¡±î¿î zindex¸¦ Ã£À½
+        qint_out(1,j)=0; % (0,0)ì¸ ì ì„ í”Œë¡¯í•˜ê¸° ìœ„í•´ ì›ì ì¢Œí‘œ ìƒì„±
+        zint_out(1,j)=0; % (0,0)ì¸ ì ì„ í”Œë¡¯í•˜ê¸° ìœ„í•´ ì›ì ì¢Œí‘œ ìƒì„±
+        z3 = zintp(3:end); % q_diff_intp ë°°ì—´ì— ëŒ€ì‘í•˜ëŠ” zê°’
+        pydepth_index1 = find(z3==pydepth,1); % z3 ê°’ ì¤‘ pydepthì— í•´ë‹¹í•˜ëŠ” index êµ¬í•¨
+        qint_out(i+1,j) = abs(q_diff_intp(pydepth_index1)); % pydepth ê°’ì—ì„œì˜ soil resistanceë¥¼ êµ¬í•¨
+        pydepth_index2 = find(zarray(:,j)>pydepth-tol1 & zarray(:,j)<pydepth+tol1, 1); % pydepthê°’ì— ê°€ì¥ ê°€ê¹Œìš´ zindexë¥¼ ì°¾ìŒ
         zint_out(i+1,j) = Dispxarray(min(pydepth_index2),j);
     end
 end
 
-% % figure ÀúÀå
+% % figure ì €ì¥
 % PilePosition = ["Force_(-D,-D)","Force_(0,-D)","Force_(D,-D)","Force_(-D,0)","Force_(0,0)","Force_(D,0)","Force_(-D,D)","Force_(0,D)","Force_(D,D)"];
 % Figure_i_name = PilePosition;
 % for i = 1:PileNum
@@ -231,7 +235,7 @@ YLabel = 'p (Soil resistance, kN/m)';
 Grid = 'off';
 Font = 'Arial';
 FontSize = 7;
-FigSize = [2,2,5.5,5]; % °¢°¢ È­¸é»ó xÁÂÇ¥, yÁÂÇ¥, °¡·Î, ¼¼·Î Å©±â
+FigSize = [2,2,5.5,5]; % ê°ê° í™”ë©´ìƒ xì¢Œí‘œ, yì¢Œí‘œ, ê°€ë¡œ, ì„¸ë¡œ í¬ê¸°
 PlotXLim=[0, 0.10]; 
 PlotYLim=[0 150];
 FileType = '.emf'
@@ -239,15 +243,15 @@ FileType = '.emf'
 pydepth_str = num2str(pydepth);
 pydepth_str = strcat('_at_', pydepth_str, 'm');
 
-% API sand pyÄ¿ºê »ı¼º
+% API sand pyì»¤ë¸Œ ìƒì„±
 [y_sand, p, k_initial1] = API_sand_v3(Water, D, gamma, phi, abs(pydepth), 0, PlotXLim(1), PlotXLim(2));
-% Water: 0ÀÌ¸é water table À§, 1ÀÌ¸é water table ¾Æ·¡
-% D: ÆÄÀÏ Á÷°æ (m)
-% gamma: ´ÜÀ§Áß·® (kN/m^3)
-% phi_deg: ³»ºÎ¸¶Âû°¢ (degree)
-% Z: py »êÃâÇÒ ±íÀÌ (m)
-% cycllic: 0ÀÌ¸é static loading, 1ÀÌ¸é cyclic loading
-% x°ª(p-y°î¼±ÀÇ y°ª) ¹üÀ§¼³Á¤
+% Water: 0ì´ë©´ water table ìœ„, 1ì´ë©´ water table ì•„ë˜
+% D: íŒŒì¼ ì§ê²½ (m)
+% gamma: ë‹¨ìœ„ì¤‘ëŸ‰ (kN/m^3)
+% phi_deg: ë‚´ë¶€ë§ˆì°°ê° (degree)
+% Z: py ì‚°ì¶œí•  ê¹Šì´ (m)
+% cycllic: 0ì´ë©´ static loading, 1ì´ë©´ cyclic loading
+% xê°’(p-yê³¡ì„ ì˜ yê°’) ë²”ìœ„ì„¤ì •
 
 PileCol = ["-k","-b","-r"];
 PileRow = ["s","^","o"];
@@ -255,10 +259,10 @@ PileRow = ["s","^","o"];
 PyVarName_int = strcat('Py_SinglePile_out_int', pydepth_str, '.mat');
 PyVarName_fit = strcat('Py_SinglePile_out_fit', pydepth_str, '.mat');
 
-% interplotationÀ¸·Î ±×¸° ¹«¸®¸»¶ÒÀÇ py °î¼±
+% interplotationìœ¼ë¡œ ê·¸ë¦° ë¬´ë¦¬ë§ëšì˜ py ê³¡ì„ 
 figure(21)
-% plot(y_sand, p); % API °î¼±
-load(PyVarName_int); % ´ÜÀÏ pile ÇØ¼®°á°ú¿¡¼­ ¾òÀº p-y°î¼±À» ºÒ·¯¿È. µû·Î ÀúÀå ÇØµÖ¾ß ºÒ·¯¿Ã ¼ö ÀÖÀ½.
+% plot(y_sand, p); % API ê³¡ì„ 
+load(PyVarName_int); % ë‹¨ì¼ pile í•´ì„ê²°ê³¼ì—ì„œ ì–»ì€ p-yê³¡ì„ ì„ ë¶ˆëŸ¬ì˜´. ë”°ë¡œ ì €ì¥ í•´ë‘¬ì•¼ ë¶ˆëŸ¬ì˜¬ ìˆ˜ ìˆìŒ.
 hold on
 plot(Py_SinglePile_out_int(:,1),Py_SinglePile_out_int(:,2), "--k");
 plot(zint_out(:,1), qint_out(:,1),strcat(PileCol(1,1),PileRow(1,1)));
@@ -273,7 +277,7 @@ plot(zint_out(:,9), qint_out(:,9),strcat(PileCol(1,3),PileRow(1,3)));
 hold off
 % legend({'API','Single Pile','(-D,-D)','(0,-D)','(D,-D)','(-D,0)','(0,0)','(D,0)','(-D,D)','(0,D)','(D,D)'},'NumColumns', 1)
 
-% Ãà¼­½Ä
+% ì¶•ì„œì‹
 ax = gca;
 ax.XLabel.String = XLabel;
 ax.YLabel.String = YLabel;
@@ -287,19 +291,19 @@ ax.FontName = Font;
 % ax.FontUnits = 'normalized'
 ax.FontSize = FontSize;
 
-% figure Á¦¸ñ ÁöÁ¤
-Figure_21_name = strcat('py °î¼± ºñ±³ API vs Plaxis - spline ¹æ¹ı', pydepth_str, FileType);
+% figure ì œëª© ì§€ì •
+Figure_21_name = strcat('py ê³¡ì„  ë¹„êµ API vs Plaxis - spline ë°©ë²•', pydepth_str, FileType);
 % title(Figure_21_name)
-% Å©±â ÁöÁ¤
+% í¬ê¸° ì§€ì •
 set(gcf,'units','centimeters','position', FigSize);
-% figure ÀúÀå
+% figure ì €ì¥
 saveas(gcf, Figure_21_name)
 
 
-% polyfitÀ¸·Î ±×¸° ¹«¸®¸»¶ÒÀÇ py °î¼±
+% polyfitìœ¼ë¡œ ê·¸ë¦° ë¬´ë¦¬ë§ëšì˜ py ê³¡ì„ 
 figure(22)
-% plot(y_sand, p); % API °î¼±
-load(PyVarName_fit); % ´ÜÀÏ pile ÇØ¼®°á°ú¿¡¼­ ¾òÀº p-y°î¼±À» ºÒ·¯¿È. µû·Î ÀúÀå ÇØµÖ¾ß ºÒ·¯¿Ã ¼ö ÀÖÀ½.
+% plot(y_sand, p); % API ê³¡ì„ 
+load(PyVarName_fit); % ë‹¨ì¼ pile í•´ì„ê²°ê³¼ì—ì„œ ì–»ì€ p-yê³¡ì„ ì„ ë¶ˆëŸ¬ì˜´. ë”°ë¡œ ì €ì¥ í•´ë‘¬ì•¼ ë¶ˆëŸ¬ì˜¬ ìˆ˜ ìˆìŒ.
 hold on
 plot(Py_SinglePile_out_fit(:,1),Py_SinglePile_out_fit(:,2));
 plot(zf_out(:,1), qf_out(:,1),strcat(PileCol(1,1),PileRow(1,1)));
@@ -314,7 +318,7 @@ plot(zf_out(:,9), qf_out(:,9),strcat(PileCol(1,3),PileRow(1,3)));
 hold off
 legend({'API','Single Pile','(-D,-D)','(0,-D)','(D,-D)','(-D,0)','(0,0)','(D,0)','(-D,D)','(0,D)','(D,D)'},'NumColumns', 1)
 
-% Ãà¼­½Ä
+% ì¶•ì„œì‹
 ax = gca;
 ax.XLabel.String = XLabel;
 ax.YLabel.String = YLabel;
@@ -328,15 +332,15 @@ ax.FontName = Font;
 % ax.FontUnits = 'normalized'
 ax.FontSize = FontSize;
 
-% figure Á¦¸ñ ÁöÁ¤
-Figure_22_name = strcat('py °î¼± ºñ±³ API vs Plaxis - ´ÙÇ×½Ä fitting ¹æ¹ı', pydepth_str, FileType);
+% figure ì œëª© ì§€ì •
+Figure_22_name = strcat('py ê³¡ì„  ë¹„êµ API vs Plaxis - ë‹¤í•­ì‹ fitting ë°©ë²•', pydepth_str, FileType);
 % title(Figure_22_name)
-% Å©±â ÁöÁ¤
+% í¬ê¸° ì§€ì •
 set(gcf,'units','centimeters','position', FigSize);
-% figure ÀúÀå
+% figure ì €ì¥
 saveas(gcf, Figure_22_name)
 
-%% ÀúÀåÇÒ º¯¼öµé
+%% ì €ì¥í•  ë³€ìˆ˜ë“¤
 
 % 1. py curve of piles from interplotation
 Py_int(:, 1:3:PileNum*3) = qint_out(:, 1:PileNum); % q data
@@ -351,8 +355,8 @@ Filename_fit = strcat('Py_GroupPile_out_fit', pydepth_str, '.txt');
 save(Filename_fit, 'Py_fit', '-ascii', '-double')
 
 % 3. p-multiplier 
-% p-multiplier¸¦ ¾ò°íÀÚÇÏ´Â Á¡ÀÇ py data¸¦ Py_int, Py_fit, Py_SinglePile º¸°£ÇÏ¿© ¾ò°í
-% pm ±¸ÇÔ
+% p-multiplierë¥¼ ì–»ê³ ìí•˜ëŠ” ì ì˜ py dataë¥¼ Py_int, Py_fit, Py_SinglePile ë³´ê°„í•˜ì—¬ ì–»ê³ 
+% pm êµ¬í•¨
 pmx = [0.01:0.01:0.1];
 Py_single_pm_int = interp1(Py_SinglePile_out_int(:,1), Py_SinglePile_out_int(:,2), pmx);
 Py_single_pm_fit = interp1(Py_SinglePile_out_fit(:,1), Py_SinglePile_out_fit(:,2), pmx);
