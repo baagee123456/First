@@ -2,7 +2,7 @@
 % 2020-05-27
 % q_from_M_v7_VolumePile
 % This script imports the Force and Disp text output of Plaxis 3D analysis for pile group,
-% and generates data for p-y curves and p-multipliers.
+% and generates p-y curves and p-multipliers.
 % This script might need other MATLAB functions uploaded in my repository.
 % Please contact yj.choi@utexas.edu for more information
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
